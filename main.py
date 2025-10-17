@@ -59,22 +59,27 @@ def checkplatform():
         if x < platform.left and ball_circle.colliderect(platform) and vx > 0:
             x = platform.left - 13
             vx = -vx * 0.5
-        elif x > platform.right and vx < 0 and ball_circle.colliderect(platform):
+        if x > platform.right and vx < 0 and ball_circle.colliderect(platform):
             x = platform.right + 13
             vx = -vx * 0.5
-        elif ball_circle.colliderect(platform) and vy > 0 and (y  > platform.y-5):
+        if ball_circle.colliderect(platform) and vy >= 0 and (y  > platform.y-10):
             onground = True
-            y = platform.y - 5
+            y = platform.y - 10
             vy *= -0.75
             vx *= 0.5
-            if abs(vy) < 1:
+            if abs(vy) < 1 or abs(vx) < 1:
+                print ("in air is now false")
                 inair = False
+                onground = True
                 vy = 0
                 vx = 0
-
-            break
+                break
+            else:
+                onground = False
 
     if not onground:
+        print("OOPSIES")
+        print(vx, vy)
         inair = True
 
 
@@ -114,10 +119,8 @@ while running:
             y += vy
             onground = False
             firing = False
+            checkplatform()
 
-
-
-        checkplatform()
         # Background image yay
         screen.blit(bgimg, (0, 0))
 
@@ -129,7 +132,7 @@ while running:
         pygame.draw.circle(screen, (255, 255, 255), (x, y), 10)
         for platform in platforms:
             pygame.draw.rect(screen,(0,255,0),platform)
-        print(inair)
+            
         if firing:
             viy = -15
             vy = viy
