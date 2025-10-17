@@ -34,6 +34,7 @@ inair = False
 onground = False
 offset_x = 0
 offset_y = 0
+canfire = False
 
 state = "title"
 
@@ -55,7 +56,14 @@ platforms = [
     pygame.Rect(500, 200, 100, 50)
 ]
 
-
+def checkcanfire():
+    global my, offset_y, canfire
+    ball_circle = pygame.Rect(x-13,y-13,26,26)
+    if my + offset_y > ball_circle.y+7.5:
+        canfire = True
+    else:
+        canfire = False
+    print(canfire)
 def checkplatform():
     global vy, inair, y, onground, vx, x, offset_x, new_dx, new_dy, platforms, offset_y
 
@@ -98,14 +106,14 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if state == "game" and event.button == 1 and inair == False:
+            if state == "game" and event.button == 1 and inair == False and canfire == True:
                 firing = True
                 onground = True
                 inair = False
 
 
         if event.type == pygame.MOUSEBUTTONUP:
-            if state == "game" and event.button == 1:
+            if state == "game" and event.button == 1 and canfire == True:
                 firing = False
                 inair = True
                 onground = False
@@ -131,6 +139,8 @@ while running:
             checkplatform()
         offset_x = x - WIDTH // 2
         offset_y = y - HEIGHT // 2
+
+        checkcanfire()
 
         # Background image yay
         # screen.blit(bgimg, (0, 0))
@@ -170,7 +180,7 @@ while running:
             t_temp = 0
             new_dx = x
             new_dy = y
-            while abs(new_dx - x) < 800 and a != 0 and dx != 0 and t != 0:
+            while abs(new_dx - x) < 800 and a != 0 and dx != 0 and t != 0 and canfire == True:
                 new_dx = x + vx * t_temp
                 new_dy = y + viy * t_temp - 0.5 * a * (t_temp ** 2)
                 pygame.draw.circle(screen, (255, 0, 0), (new_dx - offset_x, new_dy - offset_y), 5)
