@@ -6,19 +6,19 @@ import math
 
 pygame.init()
 
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1200,800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
 # IMAGES HERE
 bgimg = pygame.image.load("img/pixelsky.jpg").convert()
-bgimg = pygame.transform.scale(bgimg, (800, 600))
+bgimg = pygame.transform.scale(bgimg, (1200, 800))
 
 logo = pygame.image.load("img/logo.png").convert_alpha()
 logo = pygame.transform.scale(logo, (400, 400))
 
 forest = pygame.image.load("img/forest.jpg").convert()
-forest = pygame.transform.scale(forest, (800, 600))
+forest = pygame.transform.scale(forest, (1200, 800))
 
 play = pygame.image.load("img/play.png").convert_alpha()
 play = pygame.transform.scale(play, (100, 100))
@@ -32,6 +32,8 @@ running = True
 firing = False
 inair = False
 onground = False
+offset_x = 0
+offset_y = 0
 
 state = "title"
 
@@ -46,8 +48,8 @@ theta = 0
 new_dx = 0
 new_dy = 0
 platforms = [
-    pygame.Rect(300,400,500,50),
-    pygame.Rect(0,510,800,90),
+    pygame.Rect(300, 400, 500, 50),
+    pygame.Rect(0, 510, 1200, 90),
     pygame.Rect(50, 200, 300, 50),
     pygame.Rect(0, 0, 50, 530),
     pygame.Rect(500, 200, 100, 50)
@@ -55,15 +57,14 @@ platforms = [
 
 
 def checkplatform():
-    global vy, inair, y,onground, vx,x
+    global vy, inair, y, onground, vx, x, offset_x, new_dx, new_dy, platforms, offset_y
 
     ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
 
-
     for platform in platforms:
-        if ball_circle.colliderect(platform) and vy <= 0 and abs(y-(platform.y+platform.height)) <= 15:
+        if ball_circle.colliderect(platform) and vy <= 0 and abs(y - (platform.y + platform.height)) <= 15:
             print("collide")
-            y = platform.y+platform.height+13
+            y = platform.y + platform.height + 13
             vy *= -0.5
         elif x < platform.left and ball_circle.colliderect(platform) and vx > 0:
             x = platform.left - 13
@@ -77,7 +78,7 @@ def checkplatform():
             vy *= -0.75
             vx *= 0.6
             if abs(vy) < 0.1 or abs(vx) < 0.1:
-                print ("in air is now false")
+                print("in air is now false")
                 inair = False
                 onground = True
                 vy = 0
@@ -85,7 +86,6 @@ def checkplatform():
                 break
             else:
                 onground = False
-    
 
     if not onground:
         inair = True
@@ -102,6 +102,7 @@ while running:
                 firing = True
                 onground = True
                 inair = False
+
 
         if event.type == pygame.MOUSEBUTTONUP:
             if state == "game" and event.button == 1:
@@ -128,48 +129,52 @@ while running:
             onground = False
             firing = False
             checkplatform()
+        offset_x = x - WIDTH // 2
+        offset_y = y - HEIGHT // 2
 
         # Background image yay
         # screen.blit(bgimg, (0, 0))
 
         # Draw main platforms, DRAW OTHER PLATFORMS HERE LATER
-        pygame.draw.rect(screen, (0, 255, 0), (0, 510, 800, 90))
+        pygame.draw.rect(screen, (0, 255, 0), (0, 510, 1200, 90))
 
         # here's the actual ball
-        pygame.draw.circle(screen, (100, 100, 100), (x, y), 13)
-        pygame.draw.circle(screen, (255, 255, 255), (x, y), 10)
+        pygame.draw.circle(screen, (100, 100, 100), (x-offset_x, y-offset_y), 13)
+        pygame.draw.circle(screen, (255, 255, 255), (x-offset_x, y-offset_y), 10)
         for platform in platforms:
-            pygame.draw.rect(screen,(0,255,0),platform, border_radius = 5)
-            pygame.draw.rect(screen, (0, 150, 0), (platform.x-2, platform.y, platform.width+4, 10),  border_radius = 10)
-            
+            pygame.draw.rect(screen, (0, 255, 0), (platform.x-offset_x,platform.y-offset_y,platform.width,platform.height), border_radius=5)
+            pygame.draw.rect(screen, (0, 150, 0), (platform.x - 2 - offset_x, platform.y - offset_y, platform.width + 4, 10),
+                             border_radius=10)
+
         if firing:
             viy = -15
             vy = viy
-            if mx - x == 0:
-                theta = math.atan2(my - y, mx - x)
-            else:
-                theta = 1
-            dy = my - y
+
+
+            actual_mx = mx + offset_x
+            actual_my = my + offset_y
+
+            dx = actual_mx - x
+            dy = actual_my - y
+
             if dy == 0:
                 a = 0
             else:
-                a = -(vy) ** 2 / (2 * dy)
-            t = 2 * dy / vy
-            if t != 0:
-                vx = (mx - x) / t
+                a = -(vy ** 2) / (2 * dy)
 
-            # now here's the trajectory of the ball
-            # we need x and y in terms of t
+            t = 2 * dy / vy if vy != 0 else 0
+            if t != 0:
+                vx = dx / t
+
+            # trajectory stuff
             t_temp = 0
             new_dx = x
             new_dy = y
-
-            while abs(new_dx - 400) < 400 and a != 0 and mx - x != 0 and t != 0:
+            while abs(new_dx - x) < 800 and a != 0 and dx != 0 and t != 0:
                 new_dx = x + vx * t_temp
-                new_dy = y + viy * t_temp - 0.5 * a * t_temp ** 2
-                pygame.draw.circle(screen, (255, 0, 0), (new_dx, new_dy), 5)
+                new_dy = y + viy * t_temp - 0.5 * a * (t_temp ** 2)
+                pygame.draw.circle(screen, (255, 0, 0), (new_dx - offset_x, new_dy - offset_y), 5)
                 t_temp += 2
-
 
     pygame.display.flip()
     clock.tick(60)
