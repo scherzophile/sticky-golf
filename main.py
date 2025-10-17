@@ -122,7 +122,7 @@ while running:
             while abs(new_dx - 400) < 400 and a != 0 and mx-x != 0 and t != 0:
                 new_dx = x + vx * t_temp
                 new_dy = y + viy * t_temp - 0.5*a*t_temp**2
-                pygame.draw.circle(screen, (0, 255, 0), (new_dx, new_dy), 2)
+                pygame.draw.circle(screen, (255, 0, 0), (new_dx, new_dy), 5)
                 t_temp += 2
                 print(new_dx, new_dy)
 
@@ -138,4 +138,5 @@ sys.exit()
 TO DO LIST:
 - bouncing in intro
 - changing backgrounds
+- max power limit (so then user can just max send it)
 """
