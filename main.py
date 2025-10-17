@@ -135,5 +135,5 @@ sys.exit()
 
 TO DO LIST:
 - bouncing in intro
-
+- changing backgrounds
 """
