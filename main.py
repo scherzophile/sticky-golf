@@ -66,6 +66,7 @@ def checkplatform():
             onground = True
             y = platform.y - 5
             vy *= -0.75
+            vx *= 0.5
             if abs(vy) < 1:
                 inair = False
                 vy = 0
