@@ -85,9 +85,10 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if state == "game" and event.button == 1:
+            if state == "game" and event.button == 1 and inair == False:
                 firing = True
                 onground = True
+                inair = False
 
         if event.type == pygame.MOUSEBUTTONUP:
             if state == "game" and event.button == 1:
@@ -123,14 +124,12 @@ while running:
         # Draw main platforms, DRAW OTHER PLATFORMS HERE LATER
         pygame.draw.rect(screen, (0, 255, 0), (0, 510, 800, 90))
 
-        for platform in platforms:
-            pygame.draw.rect(screen,(0,255,0),platform)
-
         # here's the actual ball
         pygame.draw.circle(screen, (100, 100, 100), (x, y), 13)
         pygame.draw.circle(screen, (255, 255, 255), (x, y), 10)
-        
-
+        for platform in platforms:
+            pygame.draw.rect(screen,(0,255,0),platform)
+        print(inair)
         if firing:
             viy = -15
             vy = viy
