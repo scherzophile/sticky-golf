@@ -45,8 +45,12 @@ t = 0
 theta = 0
 new_dx = 0
 new_dy = 0
-platforms = [pygame.Rect(300,400,500,50),
-             pygame.Rect(0,510,800,90)]
+platforms = [
+    pygame.Rect(300,400,500,50),
+    pygame.Rect(0,510,800,90),
+    pygame.Rect(50, 200, 300, 50),
+    pygame.Rect(0, 0, 50, 500)
+]
 
 
 def checkplatform():
