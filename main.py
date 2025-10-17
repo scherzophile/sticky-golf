@@ -59,10 +59,10 @@ def checkplatform():
         if x < platform.left and ball_circle.colliderect(platform) and vx > 0:
             x = platform.left - 13
             vx = -vx * 0.5
-        if x > platform.right and vx < 0 and ball_circle.colliderect(platform):
+        elif x > platform.right and vx < 0 and ball_circle.colliderect(platform):
             x = platform.right + 13
             vx = -vx * 0.5
-        if ball_circle.colliderect(platform) and vy >= 0 and (y  > platform.y-10):
+        elif ball_circle.colliderect(platform) and vy >= 0 and (y  > platform.y-10):
             onground = True
             y = platform.y - 10
             vy *= -0.75
@@ -148,6 +148,7 @@ while running:
             t = 2 * dy / vy
             if t != 0:
                 vx = (mx - x) / t
+
             # now here's the trajectory of the ball
             # we need x and y in terms of t
             t_temp = 0
