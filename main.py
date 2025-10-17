@@ -45,7 +45,7 @@ t = 0
 theta = 0
 new_dx = 0
 new_dy = 0
-platforms = [pygame.Rect(300,400,100,100),
+platforms = [pygame.Rect(300,400,500,50),
              pygame.Rect(0,510,800,90)]
 
 
@@ -56,18 +56,22 @@ def checkplatform():
 
 
     for platform in platforms:
-        if x < platform.left and ball_circle.colliderect(platform) and vx > 0:
+        if ball_circle.colliderect(platform) and vy <= 0 and abs(y-(platform.y+platform.height)) <= 15:
+            print("collide")
+            y = platform.y+platform.height+13
+            vy *= -0.5
+        elif x < platform.left and ball_circle.colliderect(platform) and vx > 0:
             x = platform.left - 13
             vx = -vx * 0.5
         elif x > platform.right and vx < 0 and ball_circle.colliderect(platform):
             x = platform.right + 13
             vx = -vx * 0.5
-        elif ball_circle.colliderect(platform) and vy >= 0 and (y  > platform.y-10):
+        elif ball_circle.colliderect(platform) and vy > 0:
             onground = True
             y = platform.y - 10
             vy *= -0.75
-            vx *= 0.5
-            if abs(vy) < 1 or abs(vx) < 1:
+            vx *= 0.6
+            if abs(vy) < 0.1 or abs(vx) < 0.1:
                 print ("in air is now false")
                 inair = False
                 onground = True
@@ -76,10 +80,9 @@ def checkplatform():
                 break
             else:
                 onground = False
+    
 
     if not onground:
-        print("OOPSIES")
-        print(vx, vy)
         inair = True
 
 
@@ -131,7 +134,8 @@ while running:
         pygame.draw.circle(screen, (100, 100, 100), (x, y), 13)
         pygame.draw.circle(screen, (255, 255, 255), (x, y), 10)
         for platform in platforms:
-            pygame.draw.rect(screen,(0,255,0),platform)
+            pygame.draw.rect(screen,(0,255,0),platform, border_radius = 5)
+            pygame.draw.rect(screen, (0, 150, 0), (platform.x-2, platform.y, platform.width+4, 10),  border_radius = 10)
             
         if firing:
             viy = -15
