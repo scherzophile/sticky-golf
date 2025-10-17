@@ -123,11 +123,13 @@ while running:
         # Draw main platforms, DRAW OTHER PLATFORMS HERE LATER
         pygame.draw.rect(screen, (0, 255, 0), (0, 510, 800, 90))
 
+        for platform in platforms:
+            pygame.draw.rect(screen,(0,255,0),platform)
+
         # here's the actual ball
         pygame.draw.circle(screen, (100, 100, 100), (x, y), 13)
         pygame.draw.circle(screen, (255, 255, 255), (x, y), 10)
-        for platform in platforms:
-            pygame.draw.rect(screen,(0,255,0),platform)
+        
 
         if firing:
             viy = -15
