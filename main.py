@@ -49,7 +49,8 @@ platforms = [
     pygame.Rect(300,400,500,50),
     pygame.Rect(0,510,800,90),
     pygame.Rect(50, 200, 300, 50),
-    pygame.Rect(0, 0, 50, 500)
+    pygame.Rect(0, 0, 50, 530),
+    pygame.Rect(500, 200, 100, 50)
 ]
 
 
@@ -91,7 +92,7 @@ def checkplatform():
 
 
 while running:
-    screen.fill((0, 0, 0))
+    screen.fill((93, 226, 231))
     mx, my = pygame.mouse.get_pos()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -129,7 +130,7 @@ while running:
             checkplatform()
 
         # Background image yay
-        screen.blit(bgimg, (0, 0))
+        # screen.blit(bgimg, (0, 0))
 
         # Draw main platforms, DRAW OTHER PLATFORMS HERE LATER
         pygame.draw.rect(screen, (0, 255, 0), (0, 510, 800, 90))
