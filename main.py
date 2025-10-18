@@ -93,6 +93,12 @@ logo = pygame.transform.scale(logo, (400, 400))
 forest = pygame.image.load("img/forest.jpg").convert()
 forest = pygame.transform.scale(forest, (1200, 800))
 
+tundra = pygame.image.load("img/tundra.jpg").convert()
+tundra = pygame.transform.scale(tundra, (1200, 800))
+
+volcano = pygame.image.load("img/volcano.jpg").convert()
+volcano = pygame.transform.scale(volcano, (1200, 800))
+
 play = pygame.image.load("img/play.png").convert_alpha()
 play = pygame.transform.scale(play, (100, 100))
 
@@ -100,6 +106,14 @@ play = pygame.transform.scale(play, (100, 100))
 pygame.mixer.init()
 pygame.mixer.music.load("audio/music.mp3")
 pygame.mixer.music.play(loops=-1)
+
+
+# Fonts
+font = pygame.font.Font(None, 48)
+
+
+title_slideshow = 0
+title_slide = 0
 
 running = True
 firing = False
@@ -128,6 +142,8 @@ platforms = [
     pygame.Rect(0, 0, 50, 530),
     pygame.Rect(500, 200, 100, 50)
 ]
+
+name = ""
 
 
 
@@ -199,16 +215,37 @@ while running:
                 onground = False
             # Play button
             if state == "title" and event.button == 1:
-                if 350 <= mx and mx <= 450 and 400 <= my and my <= 500:
+                if 350 <= mx and mx <= 450 and 400 <= my and my <= 500 and name.strip() != "":
                     state = "game"
                     firing = False
                     inair = True
                     a = -2
+        
+        if event.type == pygame.KEYDOWN:
+            if state == "title":
+                if event.key == pygame.K_BACKSPACE:
+                    name = name[:-1]
+                elif len(name) < 20:
+                    name += event.unicode
+
 
     if state == "title":
-        screen.blit(forest, (0, 0))
-        screen.blit(logo, (200, 50))
-        screen.blit(play, (350, 400))
+        if title_slide % 3 == 0:
+            screen.blit(forest, (0, 0))
+        elif title_slide % 3 == 1:
+            screen.blit(tundra, (0, 0))
+        else:
+            screen.blit(volcano, (0, 0))
+
+        screen.blit(logo, (400, 0))
+        screen.blit(play, (550, 500))
+
+        pygame.draw.rect(screen, (0, 0, 0), (395, 355, 410, 90), border_radius=25)
+        pygame.draw.rect(screen, (255, 255, 255), (400, 360, 400, 80), border_radius=20)
+        inputtext = font.render(name, True, (0, 0, 0))
+        screen.blit(inputtext, (425, 385))
+
+
     if state == "game":
         if inair:
             vy -= a
@@ -282,6 +319,10 @@ while running:
                 new_dy = y + viy * t_temp - 0.5 * a * (t_temp ** 2)
                 pygame.draw.circle(screen, (255, 0, 0), (new_dx - offset_x, new_dy - offset_y), 5)
                 t_temp += 2
+
+    title_slideshow += 1
+    if title_slideshow % 300 == 0:
+        title_slide += 1
 
     pygame.display.flip()
     clock.tick(60)
