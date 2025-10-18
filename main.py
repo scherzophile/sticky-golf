@@ -40,13 +40,16 @@ def receive_data():
                         "tx": info["x"],
                         "ty": info["y"],
                         "firing": info.get("firing", False),
-                        "inair": info.get("inair", False)
+                        "inair": info.get("inair", False),
+                        "name": info.get("name", "???")
                     }
                 else:
                     other_players[pid]["tx"] = info["x"]
                     other_players[pid]["ty"] = info["y"]
                     other_players[pid]["firing"] = info.get("firing", False)
                     other_players[pid]["inair"] = info.get("inair", False)
+                    other_players[pid]["name"] = info.get("name", other_players[pid].get("name", "???"))
+
 
         except json.JSONDecodeError:
             continue
@@ -62,7 +65,8 @@ def send_player_data():
             "x": x,
             "y": y,
             "firing": firing,
-            "inair": inair
+            "inair": inair,
+            "name": name
         }) + "\n"
         client.sendall(packet.encode())
     except:
@@ -213,7 +217,7 @@ while running:
                 onground = False
             # Play button
             if state == "title" and event.button == 1:
-                if 350 <= mx and mx <= 450 and 400 <= my and my <= 500 and name.strip() != "":
+                if 550 <= mx and mx <= 650 and 500 <= my and my <= 600 and name.strip() != "":
                     state = "game"
                     firing = False
                     inair = True
@@ -274,6 +278,9 @@ while running:
         # Local player
         pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
         pygame.draw.circle(screen, (255, 255, 255), (x - offset_x, y - offset_y), 10)
+        my_name = font.render(name, True, (0, 0, 0))
+        my_name_rect = my_name.get_rect(center=(x - offset_x, y - offset_y - 25))
+        screen.blit(my_name, my_name_rect)
 
         # Other players
         for pid, pdata in other_players.items():
@@ -287,6 +294,10 @@ while running:
             pygame.draw.circle(screen, (200, 100, 100), (int(other_x), int(other_y)), 13)
             pygame.draw.circle(screen, (255, 100, 100), (int(other_x), int(other_y)), 10)
 
+            name_text = font.render(pdata["name"], True, (0, 0, 0))
+            name_rect = name_text.get_rect(center=(int(other_x), int(other_y) - 25))
+            screen.blit(name_text, name_rect)
+
         if firing:
             viy = -15
             vy = viy
@@ -297,7 +308,7 @@ while running:
             dx = actual_mx - x
             dy = actual_my - y
 
-            max = 200
+            max = 350
             dist = (dx ** 2 + dy ** 2) ** 0.5
 
             if dist > max:
