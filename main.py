@@ -13,6 +13,7 @@ WIDTH, HEIGHT = 1200, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
+
 # SERVER STUFF
 
 def receive_data():
@@ -66,6 +67,8 @@ def send_player_data():
         client.sendall(packet.encode())
     except:
         pass
+
+
 HOST = "142.112.166.131"
 PORT = 6767  # hehehehaw
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -107,10 +110,8 @@ pygame.mixer.init()
 pygame.mixer.music.load("audio/music.mp3")
 pygame.mixer.music.play(loops=-1)
 
-
 # Fonts
 font = pygame.font.Font(None, 48)
-
 
 title_slideshow = 0
 title_slide = 0
@@ -144,9 +145,6 @@ platforms = [
 ]
 
 name = ""
-
-
-
 
 
 def checkcanfire():
@@ -220,14 +218,13 @@ while running:
                     firing = False
                     inair = True
                     a = -2
-        
+
         if event.type == pygame.KEYDOWN:
             if state == "title":
                 if event.key == pygame.K_BACKSPACE:
                     name = name[:-1]
                 elif len(name) < 20:
                     name += event.unicode
-
 
     if state == "title":
         if title_slide % 3 == 0:
@@ -244,7 +241,6 @@ while running:
         pygame.draw.rect(screen, (255, 255, 255), (400, 360, 400, 80), border_radius=20)
         inputtext = font.render(name, True, (0, 0, 0))
         screen.blit(inputtext, (425, 385))
-
 
     if state == "game":
         if inair:
@@ -301,6 +297,14 @@ while running:
             dx = actual_mx - x
             dy = actual_my - y
 
+            max = 200
+            dist = (dx ** 2 + dy ** 2) ** 0.5
+
+            if dist > max:
+                scale = max / dist
+                dx *= scale
+                dy *= scale
+
             if dy == 0:
                 a = 0
             else:
@@ -319,7 +323,6 @@ while running:
                 new_dy = y + viy * t_temp - 0.5 * a * (t_temp ** 2)
                 pygame.draw.circle(screen, (255, 0, 0), (new_dx - offset_x, new_dy - offset_y), 5)
                 t_temp += 2
-
     title_slideshow += 1
     if title_slideshow % 300 == 0:
         title_slide += 1
