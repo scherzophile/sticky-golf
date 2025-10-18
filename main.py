@@ -116,6 +116,7 @@ pygame.mixer.music.play(loops=-1)
 
 # Fonts
 font = pygame.font.Font(None, 48)
+font2 = pygame.font.Font(None, 36)
 
 title_slideshow = 0
 title_slide = 0
@@ -148,6 +149,11 @@ platforms = [
     pygame.Rect(500, 200, 100, 50)
 ]
 
+coins = [
+    pygame.Rect(500, 140, 50, 50)
+]
+
+money = 0
 name = ""
 
 
@@ -274,12 +280,33 @@ while running:
             pygame.draw.rect(screen, (0, 150, 0),
                              (platform.x - 2 - offset_x, platform.y - offset_y, platform.width + 4, 10),
                              border_radius=10)
+        
+        for coin in coins:
+            pygame.draw.circle(screen, (200, 200, 0), (
+                coin.x-offset_x + coin.width/2,
+                coin.y-offset_y + coin.height/2
+            ), coin.width/2 + 5)
+            pygame.draw.circle(screen, (255, 255, 0), (
+                coin.x-offset_x + coin.width/2,
+                coin.y-offset_y + coin.height/2
+            ), coin.width/2)
+
+            ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
+            if ball_circle.colliderect(coin):
+                money += 100
+                coin.x = -100000000
+                break
+
+
 
         # Local player
         pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
         pygame.draw.circle(screen, (255, 255, 255), (x - offset_x, y - offset_y), 10)
-        my_name = font.render(name, True, (0, 0, 0))
-        my_name_rect = my_name.get_rect(center=(x - offset_x, y - offset_y - 25))
+
+        fontw, fonth = font2.size(name)
+        pygame.draw.rect(screen, (0, 0, 0), (x-offset_x - fontw/2 - 10, y - offset_y - 55 - fonth/2, fontw + 20, fonth+10), border_radius = 10)
+        my_name = font2.render(name, True, (255, 255, 255))
+        my_name_rect = my_name.get_rect(center=(x - offset_x, y - offset_y - 50))
         screen.blit(my_name, my_name_rect)
 
         # Other players
@@ -294,8 +321,10 @@ while running:
             pygame.draw.circle(screen, (200, 100, 100), (int(other_x), int(other_y)), 13)
             pygame.draw.circle(screen, (255, 100, 100), (int(other_x), int(other_y)), 10)
 
-            name_text = font.render(pdata["name"], True, (0, 0, 0))
-            name_rect = name_text.get_rect(center=(int(other_x), int(other_y) - 25))
+            fontw, fonth = font2.size(pdata["name"])
+            pygame.draw.rect(screen, (100, 100, 100), (other_x - fontw/2 - 10, other_y - 55 - fonth/2, fontw + 20, fonth+10), border_radius = 10)
+            name_text = font2.render(pdata["name"], True, (255, 255, 255))
+            name_rect = name_text.get_rect(center=(other_x, other_y - 50))
             screen.blit(name_text, name_rect)
 
         if firing:
@@ -326,11 +355,23 @@ while running:
             t_temp = 0
             new_dx = x
             new_dy = y
-            while abs(new_dx - x) < 800 and abs(new_dy - y) < 800 and a != 0 and dx != 0 and t != 0 and canfire == True:
+            while abs(new_dx - x) < 400 and abs(new_dy - y) < 400 and a != 0 and dx != 0 and t != 0 and canfire == True:
                 new_dx = x + vx * t_temp
                 new_dy = y + viy * t_temp - 0.5 * a * (t_temp ** 2)
                 pygame.draw.circle(screen, (255, 0, 0), (new_dx - offset_x, new_dy - offset_y), 5)
                 t_temp += 2
+
+
+        # DISPLAY the user interfaace (at the very end)
+
+        # Amt of money user has
+        pygame.draw.rect(screen, (0, 0, 0), (495, 20, 210, 65), border_radius=12)
+        pygame.draw.rect(screen, (255, 255, 255), (500, 25, 200, 55), border_radius = 10)
+        money_text = font.render("$" + str(money), True, (0, 0, 0))
+        money_rect = money_text.get_rect(center=(600, 50))
+        screen.blit(money_text, money_rect)
+
+
     title_slideshow += 1
     if title_slideshow % 300 == 0:
         title_slide += 1
