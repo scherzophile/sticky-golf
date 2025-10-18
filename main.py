@@ -308,13 +308,10 @@ while running:
             dx = actual_mx - x
             dy = actual_my - y
 
-            max = 350
-            dist = (dx ** 2 + dy ** 2) ** 0.5
+            max_x = 200
 
-            if dist > max:
-                scale = max / dist
-                dx *= scale
-                dy *= scale
+            if abs(dx) > max_x:
+                dx = max_x * (dx / abs(dx))
 
             if dy == 0:
                 a = 0
