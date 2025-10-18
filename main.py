@@ -124,7 +124,7 @@ title_slide = 0
 running = True
 firing = False
 inair = False
-onground = False
+onground = True
 offset_x = 0
 offset_y = 0
 canfire = False
@@ -153,7 +153,12 @@ coins = [
     pygame.Rect(500, 140, 50, 50)
 ]
 
+hole = [
+    pygame.Rect(100, 140, 50, 10)
+]
+
 money = 0
+strokes = 0
 name = ""
 
 
@@ -217,10 +222,11 @@ while running:
                 inair = False
 
         if event.type == pygame.MOUSEBUTTONUP:
-            if state == "game" and event.button == 1 and canfire == True:
+            if state == "game" and event.button == 1 and canfire == True and inair == False and onground == True:
                 firing = False
                 inair = True
                 onground = False
+                strokes += 1
             # Play button
             if state == "title" and event.button == 1:
                 if 550 <= mx and mx <= 650 and 500 <= my and my <= 600 and name.strip() != "":
@@ -369,6 +375,13 @@ while running:
         pygame.draw.rect(screen, (255, 255, 255), (500, 25, 200, 55), border_radius = 10)
         money_text = font.render("$" + str(money), True, (0, 0, 0))
         money_rect = money_text.get_rect(center=(600, 50))
+        screen.blit(money_text, money_rect)
+
+        # Number of strokes the user took
+        pygame.draw.rect(screen, (0, 0, 0), (510, 90, 180, 50), border_radius=12)
+        pygame.draw.rect(screen, (255, 255, 255), (515, 95, 170, 40), border_radius = 10)
+        money_text = font2.render("Strokes: " + str(strokes), True, (0, 0, 0))
+        money_rect = money_text.get_rect(center=(600, 115))
         screen.blit(money_text, money_rect)
 
 
