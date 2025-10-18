@@ -6,6 +6,7 @@ import socket
 import threading
 import json
 import random
+import time
 
 pygame.init()
 
@@ -28,6 +29,17 @@ def receive_data():
             while "\n" in buffer:
                 message, buffer = buffer.split("\n", 1)
                 info = json.loads(message)
+
+                # Handle disconnect messages
+                if info.get("type") == "disconnect":
+                    disconnect_addr = info.get("addr")
+                    # Remove player by checking if addr matches
+                    for pid in list(other_players.keys()):
+                        if other_players[pid].get("addr") == disconnect_addr:
+                            del other_players[pid]
+                            print(f"Player {pid} disconnected")
+                    continue
+
                 pid = info["id"]
 
                 if pid == player_id:
@@ -41,7 +53,8 @@ def receive_data():
                         "ty": info["y"],
                         "firing": info.get("firing", False),
                         "inair": info.get("inair", False),
-                        "name": info.get("name", "???")
+                        "name": info.get("name", "???"),
+                        "addr": info.get("addr", "")  # Store address for disconnect matching
                     }
                 else:
                     other_players[pid]["tx"] = info["x"]
@@ -49,7 +62,7 @@ def receive_data():
                     other_players[pid]["firing"] = info.get("firing", False)
                     other_players[pid]["inair"] = info.get("inair", False)
                     other_players[pid]["name"] = info.get("name", other_players[pid].get("name", "???"))
-
+                    other_players[pid]["addr"] = info.get("addr", other_players[pid].get("addr", ""))
 
         except json.JSONDecodeError:
             continue
@@ -87,7 +100,7 @@ except (ConnectionRefusedError, socket.timeout, OSError) as e:
     pygame.quit()
     sys.exit()
 
-player_id = str(random.randint(1000, 9999))
+player_id = f"{random.randint(1000, 9999)}-{int(time.time() * 1000) % 100000}"
 other_players = {}
 
 # IMAGES HERE
@@ -143,20 +156,24 @@ new_dx = 0
 new_dy = 0
 platforms = [
     pygame.Rect(300, 400, 500, 50),
-    pygame.Rect(0, 510, 1200, 90),
+    pygame.Rect(0, 510, 1000, 90),
     pygame.Rect(50, 200, 300, 50),
     pygame.Rect(0, 0, 50, 530),
-    pygame.Rect(500, 200, 100, 50)
+    pygame.Rect(500, 200, 100, 50),
+
+    # Make sure user can't cheat by going right
+    pygame.Rect(1000, -500, 50, 1100),
+
+    # We're going down down down
+    pygame.Rect(-200, 0, 50, 800),
+    pygame.Rect(-200, 800, 1500, 50)
 ]
 
 coins = [
     pygame.Rect(500, 140, 50, 50)
 ]
 
-hole = [
-    pygame.Rect(100, 140, 50, 10)
-]
-
+hole = pygame.Rect(1000, 790, 50, 10)
 money = 0
 strokes = 0
 name = ""
@@ -243,6 +260,7 @@ while running:
                     name += event.unicode
 
     if state == "title":
+        send_player_data()
         if title_slide % 3 == 0:
             screen.blit(forest, (0, 0))
         elif title_slide % 3 == 1:
@@ -286,31 +304,40 @@ while running:
             pygame.draw.rect(screen, (0, 150, 0),
                              (platform.x - 2 - offset_x, platform.y - offset_y, platform.width + 4, 10),
                              border_radius=10)
-        
+
         for coin in coins:
             pygame.draw.circle(screen, (200, 200, 0), (
-                coin.x-offset_x + coin.width/2,
-                coin.y-offset_y + coin.height/2
-            ), coin.width/2 + 5)
+                coin.x - offset_x + coin.width / 2,
+                coin.y - offset_y + coin.height / 2
+            ), coin.width / 2 + 5)
             pygame.draw.circle(screen, (255, 255, 0), (
-                coin.x-offset_x + coin.width/2,
-                coin.y-offset_y + coin.height/2
-            ), coin.width/2)
+                coin.x - offset_x + coin.width / 2,
+                coin.y - offset_y + coin.height / 2
+            ), coin.width / 2)
 
             ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
             if ball_circle.colliderect(coin):
                 money += 100
                 coin.x = -100000000
                 break
+        
+        # Draw hole
+        newholerect = pygame.Rect(hole.x-offset_x, hole.y-offset_y, hole.width, hole.height)
+        pygame.draw.rect(screen, (0, 0, 0), newholerect)
+        ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
 
-
+        if ball_circle.colliderect(hole):
+            break
+        
 
         # Local player
         pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
         pygame.draw.circle(screen, (255, 255, 255), (x - offset_x, y - offset_y), 10)
 
         fontw, fonth = font2.size(name)
-        pygame.draw.rect(screen, (0, 0, 0), (x-offset_x - fontw/2 - 10, y - offset_y - 55 - fonth/2, fontw + 20, fonth+10), border_radius = 10)
+        pygame.draw.rect(screen, (0, 0, 0),
+                         (x - offset_x - fontw / 2 - 10, y - offset_y - 55 - fonth / 2, fontw + 20, fonth + 10),
+                         border_radius=10)
         my_name = font2.render(name, True, (255, 255, 255))
         my_name_rect = my_name.get_rect(center=(x - offset_x, y - offset_y - 50))
         screen.blit(my_name, my_name_rect)
@@ -328,7 +355,9 @@ while running:
             pygame.draw.circle(screen, (255, 100, 100), (int(other_x), int(other_y)), 10)
 
             fontw, fonth = font2.size(pdata["name"])
-            pygame.draw.rect(screen, (100, 100, 100), (other_x - fontw/2 - 10, other_y - 55 - fonth/2, fontw + 20, fonth+10), border_radius = 10)
+            pygame.draw.rect(screen, (100, 100, 100),
+                             (other_x - fontw / 2 - 10, other_y - 55 - fonth / 2, fontw + 20, fonth + 10),
+                             border_radius=10)
             name_text = font2.render(pdata["name"], True, (255, 255, 255))
             name_rect = name_text.get_rect(center=(other_x, other_y - 50))
             screen.blit(name_text, name_rect)
@@ -367,23 +396,21 @@ while running:
                 pygame.draw.circle(screen, (255, 0, 0), (new_dx - offset_x, new_dy - offset_y), 5)
                 t_temp += 2
 
-
         # DISPLAY the user interfaace (at the very end)
 
         # Amt of money user has
         pygame.draw.rect(screen, (0, 0, 0), (495, 20, 210, 65), border_radius=12)
-        pygame.draw.rect(screen, (255, 255, 255), (500, 25, 200, 55), border_radius = 10)
+        pygame.draw.rect(screen, (255, 255, 255), (500, 25, 200, 55), border_radius=10)
         money_text = font.render("$" + str(money), True, (0, 0, 0))
         money_rect = money_text.get_rect(center=(600, 50))
         screen.blit(money_text, money_rect)
 
         # Number of strokes the user took
         pygame.draw.rect(screen, (0, 0, 0), (510, 90, 180, 50), border_radius=12)
-        pygame.draw.rect(screen, (255, 255, 255), (515, 95, 170, 40), border_radius = 10)
+        pygame.draw.rect(screen, (255, 255, 255), (515, 95, 170, 40), border_radius=10)
         money_text = font2.render("Strokes: " + str(strokes), True, (0, 0, 0))
         money_rect = money_text.get_rect(center=(600, 115))
         screen.blit(money_text, money_rect)
-
 
     title_slideshow += 1
     if title_slideshow % 300 == 0:
