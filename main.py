@@ -28,6 +28,8 @@ def receive_data():
                 break
             buffer += data
             while "\n" in buffer:
+                print("There is stuff in the buffer")
+                print(buffer)
                 message, buffer = buffer.split("\n", 1)
                 info = json.loads(message)
 
@@ -77,15 +79,16 @@ def receive_data():
                     other_players[pid]["name"] = info.get("name", other_players[pid].get("name", "???"))
                     other_players[pid]["addr"] = info.get("addr", other_players[pid].get("addr", ""))
 
+        except socket.timeout:
+            print("We are waiting for data")
+            continue
         except json.JSONDecodeError:
             continue
         except Exception as e:
             print(f"[ERROR receiving data] {e}")
-            break
 
 
 def send_player_data():
-
     try:
         packet = json.dumps({
             "id": player_id,
@@ -110,10 +113,11 @@ def send_player_data():
         client.sendall(packet.encode())
     except:
         pass
-HOST = "142.112.166.131"
+# HOST = "142.112.166.131"
+HOST = "127.0.0.1"
 PORT = 6969  # hehehehaw
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.settimeout(5)
+client.settimeout(1)
 try:
     client.connect((HOST, PORT))
     print("Connected to RICKY server")
@@ -273,7 +277,6 @@ def checkcanfire():
         canfire = True
     else:
         canfire = False
-    print(canfire)
 
 def respawn():
     global x,y, prevx, prevy, vx, vy, onground, inair
@@ -292,7 +295,6 @@ def checkplatform():
 
     for platform in platforms[level]:
         if ball_circle.colliderect(platform) and vy <= 0 and abs(y - (platform.y + platform.height)) <= 15:
-            print("collide")
             y = platform.y + platform.height + 13
             vy *= -0.5
         elif x < platform.left and ball_circle.colliderect(platform) and vx > 0:
@@ -306,9 +308,7 @@ def checkplatform():
             y = platform.y - 10
             vy *= -0.75
             vx *= 0.6
-            print(vx, vy)
             if abs(vy) <= abs(a):
-                print("in air is now false")
                 inair = False
                 onground = True
                 vy = 0
@@ -417,8 +417,6 @@ while running:
 
         send_player_data()
 
-        print(y)
-
 
 
         respawn()
@@ -479,7 +477,7 @@ while running:
                 try:
                     client.sendall(packet.encode())
                 except:
-                    pass
+                    print("Problem sending game finished")
 
         # Local player
         pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
