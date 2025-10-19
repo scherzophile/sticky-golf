@@ -154,6 +154,8 @@ t = 0
 theta = 0
 new_dx = 0
 new_dy = 0
+prevx = 0
+prevy =0
 platforms = [
     pygame.Rect(300, 400, 500, 50),
     pygame.Rect(0, 510, 1000, 90),
@@ -187,6 +189,17 @@ def checkcanfire():
     else:
         canfire = False
     print(canfire)
+
+def respawn():
+    global x,y, prevx, prevy, vx, vy, onground, inair
+    if y + offset_y >= 2000:
+        vx = 0
+        vy = 0
+        x = prevx
+        y = prevx
+        onground = True
+        inair = False
+
 
 
 def checkplatform():
@@ -291,6 +304,9 @@ while running:
 
         send_player_data()
 
+        print(y + offset_y)
+
+        respawn()
         # Background image yay
         # screen.blit(bgimg, (0, 0))
 
@@ -320,15 +336,14 @@ while running:
                 money += 100
                 coin.x = -100000000
                 break
-        
+
         # Draw hole
-        newholerect = pygame.Rect(hole.x-offset_x, hole.y-offset_y, hole.width, hole.height)
+        newholerect = pygame.Rect(hole.x - offset_x, hole.y - offset_y, hole.width, hole.height)
         pygame.draw.rect(screen, (0, 0, 0), newholerect)
         ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
 
         if ball_circle.colliderect(hole):
             break
-        
 
         # Local player
         pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
@@ -365,7 +380,8 @@ while running:
         if firing:
             viy = -15
             vy = viy
-
+            prevx = x
+            prevy = y
             actual_mx = mx + offset_x
             actual_my = my + offset_y
 
