@@ -13,12 +13,13 @@ pygame.init()
 WIDTH, HEIGHT = 1200, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+# Fonts
+font = pygame.font.Font(None, 48)
+font2 = pygame.font.Font(None, 36)
 
-
-# SERVER STUFF
-
+#===== SERVER STUFF
 def receive_data():
-    global other_players
+    global other_players, state, all_ready
     buffer = ""
     while True:
         try:
@@ -29,6 +30,18 @@ def receive_data():
             while "\n" in buffer:
                 message, buffer = buffer.split("\n", 1)
                 info = json.loads(message)
+
+                # Late join
+                if info.get("type") == "reject":
+                    print(info.get("reason"))
+                    pygame.quit()
+                    sys.exit()
+                # Game start
+                if info.get("type") == "start_game":
+                    print("Game started!")
+                    state = "game"
+                    all_ready = True
+                    continue
 
                 # Handle disconnect messages
                 if info.get("type") == "disconnect":
@@ -72,6 +85,7 @@ def receive_data():
 
 
 def send_player_data():
+
     try:
         packet = json.dumps({
             "id": player_id,
@@ -84,13 +98,22 @@ def send_player_data():
         client.sendall(packet.encode())
     except:
         pass
-
-
+    try:
+        packet = json.dumps({
+            "id": player_id,
+            "x": x,
+            "y": y,
+            "firing": firing,
+            "inair": inair,
+            "name": name
+        }) + "\n"
+        client.sendall(packet.encode())
+    except:
+        pass
 HOST = "142.112.166.131"
 PORT = 6767  # hehehehaw
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.settimeout(5)
-
 try:
     client.connect((HOST, PORT))
     print("Connected to RICKY server")
@@ -100,8 +123,45 @@ except (ConnectionRefusedError, socket.timeout, OSError) as e:
     pygame.quit()
     sys.exit()
 
+
+# ==== GLOBAL VARIABLES
 player_id = f"{random.randint(1000, 9999)}-{int(time.time() * 1000) % 100000}"
 other_players = {}
+
+title_slideshow = 0
+title_slide = 0
+
+running = True
+firing = False
+inair = False
+onground = True
+offset_x = 0
+offset_y = 0
+canfire = False
+
+state = "title"
+ready = False
+all_ready = False
+
+x = 300
+y = 400
+a = 0
+viy = 0
+vy = 0
+vx = 0
+t = 0
+theta = 0
+new_dx = 0
+new_dy = 0
+prevx = 0
+prevy =0
+
+money = 0
+strokes = 0
+name = ""
+level = 0
+
+
 
 # IMAGES HERE
 bgimg = pygame.image.load("img/pixelsky.jpg").convert()
@@ -127,58 +187,83 @@ pygame.mixer.init()
 pygame.mixer.music.load("audio/music.mp3")
 pygame.mixer.music.play(loops=-1)
 
-# Fonts
-font = pygame.font.Font(None, 48)
-font2 = pygame.font.Font(None, 36)
-
-title_slideshow = 0
-title_slide = 0
-
-running = True
-firing = False
-inair = False
-onground = True
-offset_x = 0
-offset_y = 0
-canfire = False
-
-state = "title"
-
-x = 300
-y = 400
-a = 0
-viy = 0
-vy = 0
-vx = 0
-t = 0
-theta = 0
-new_dx = 0
-new_dy = 0
-prevx = 0
-prevy =0
 platforms = [
-    pygame.Rect(300, 400, 500, 50),
-    pygame.Rect(0, 510, 1000, 90),
-    pygame.Rect(50, 200, 300, 50),
-    pygame.Rect(0, 0, 50, 530),
-    pygame.Rect(500, 200, 100, 50),
+    [
+        pygame.Rect(300, 400, 500, 50),
+        pygame.Rect(0, 510, 1000, 90),
+        pygame.Rect(50, 200, 300, 50),
+        pygame.Rect(0, 0, 50, 530),
+        pygame.Rect(500, 200, 100, 50),
 
-    # Make sure user can't cheat by going right
-    pygame.Rect(1000, -500, 50, 1100),
+        # Make sure user can't cheat by going right
+        pygame.Rect(1000, -500, 50, 1100),
 
-    # We're going down down down
-    pygame.Rect(-200, 0, 50, 800),
-    pygame.Rect(-200, 800, 1500, 50)
+        # We're going down down down
+        pygame.Rect(-200, 0, 50, 800),
+        pygame.Rect(-200, 800, 1500, 50)
+    ], [
+        # Middle block
+        pygame.Rect(-100, 50, 200, 200),
+
+        # Bottom left corner of center
+        pygame.Rect(-500, 250, 200, 400),
+        pygame.Rect(-300, 450, 200, 200),
+
+        # Bottom right corner of center
+        pygame.Rect(300, 250, 200, 400),
+        pygame.Rect(100, 450, 200, 200),
+
+        # Top right corner of center
+        pygame.Rect(300, -350, 200, 400),
+        pygame.Rect(100, -350, 200, 200),
+
+        # Top left corner of center
+        pygame.Rect(-500, -350, 200, 400),
+        pygame.Rect(-300, -350, 200, 200),
+
+        # Bottom platform to prevent user from falling
+        pygame.Rect(-300, 850, 600, 200),
+
+        # Top platform for symmetry
+        pygame.Rect(-300, -750, 600, 200),
+
+        # Now left and right side symmetry
+        pygame.Rect(-1100, -350, 200, 1000),
+        pygame.Rect(900, -350, 200, 1000),
+
+        # Top-left corner blocks
+        pygame.Rect(-900, -550, 200, 200), 
+        pygame.Rect(-700, -750, 200, 200),
+
+        # Bottom left corner blocks
+        pygame.Rect(-900, 850, 200, 200), 
+        pygame.Rect(-700, 1050, 200, 200),
+
+        # Top-right corner blocks
+        pygame.Rect(700, -550, 200, 200), 
+        pygame.Rect(500, -750, 200, 200),
+
+        # Bottom right corner blocks
+        pygame.Rect(700, 850, 200, 200), 
+        pygame.Rect(500, 1050, 200, 200),
+    ]
+    
 ]
 
 coins = [
-    pygame.Rect(500, 140, 50, 50)
+    [
+        pygame.Rect(500, 140, 50, 50)
+    ], 
+    [
+        pygame.Rect(500, 140, 50, 50)
+    ]
 ]
 
-hole = pygame.Rect(1000, 790, 50, 10)
-money = 0
-strokes = 0
-name = ""
+hole = [
+    pygame.Rect(1000, 790, 50, 10),
+    pygame.Rect(100, 100, 50, 10)
+]
+
 
 
 def checkcanfire():
@@ -200,14 +285,12 @@ def respawn():
         x = prevx
         y = prevy
 
-
-
 def checkplatform():
     global vy, inair, y, onground, vx, x, offset_x, new_dx, new_dy, platforms, offset_y
 
     ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
 
-    for platform in platforms:
+    for platform in platforms[level]:
         if ball_circle.colliderect(platform) and vy <= 0 and abs(y - (platform.y + platform.height)) <= 15:
             print("collide")
             y = platform.y + platform.height + 13
@@ -237,7 +320,6 @@ def checkplatform():
     if not onground:
         inair = True
 
-
 while running:
     screen.fill((93, 226, 231))
     mx, my = pygame.mouse.get_pos()
@@ -250,6 +332,11 @@ while running:
                 firing = True
                 onground = True
                 inair = False
+            if state == "queue" and event.button == 1:
+                if not ready:
+                    ready = True
+                    packet = json.dumps({"type": "ready", "id": player_id}) + "\n"
+                    client.sendall(packet.encode())
 
         if event.type == pygame.MOUSEBUTTONUP:
             if state == "game" and event.button == 1 and canfire == True and inair == False and onground == True:
@@ -260,7 +347,7 @@ while running:
             # Play button
             if state == "title" and event.button == 1:
                 if 550 <= mx and mx <= 650 and 500 <= my and my <= 600 and name.strip() != "":
-                    state = "game"
+                    state = "queue"
                     firing = False
                     inair = True
                     a = -2
@@ -271,6 +358,32 @@ while running:
                     name = name[:-1]
                 elif len(name) < 20:
                     name += event.unicode
+        
+    
+    if state == "queue":
+        screen.fill((30, 30, 30))
+        text = font.render("Waiting in queue...", True, (255, 255, 255))
+        screen.blit(text, (450, 300))
+
+        if not ready:
+            ready_msg = "Click to READY UP"
+            ready_color = (0, 255, 0)
+        else:
+            ready_msg = "READY! Waiting for others..."
+            ready_color = (255, 255, 0)
+        ready_text = font.render(ready_msg, True, ready_color)
+        screen.blit(ready_text, (350, 400))
+
+        # Other players names
+        y_offset = 500
+        for pid, pdata in other_players.items():
+            nam_text = font2.render(f"{pdata['name']}", True, (255, 255, 255))
+            screen.blit(nam_text, (500, y_offset))
+            y_offset += 40
+
+        if all_ready:
+            state = "game"
+            
 
     if state == "title":
         send_player_data()
@@ -312,10 +425,7 @@ while running:
         # Background image yay
         # screen.blit(bgimg, (0, 0))
 
-        # Draw main platforms, DRAW OTHER PLATFORMS HERE LATER
-        pygame.draw.rect(screen, (0, 255, 0), (0, 510, 1200, 90))
-
-        for platform in platforms:
+        for platform in platforms[level]:
             pygame.draw.rect(screen, (67, 33, 9),
                              (platform.x - offset_x, platform.y - offset_y, platform.width, platform.height),
                              border_radius=5)
@@ -323,7 +433,7 @@ while running:
                              (platform.x - 2 - offset_x, platform.y - offset_y, platform.width + 4, 10),
                              border_radius=10)
 
-        for coin in coins:
+        for coin in coins[level]:
             pygame.draw.circle(screen, (200, 200, 0), (
                 coin.x - offset_x + coin.width / 2,
                 coin.y - offset_y + coin.height / 2
@@ -340,12 +450,36 @@ while running:
                 break
 
         # Draw hole
-        newholerect = pygame.Rect(hole.x - offset_x, hole.y - offset_y, hole.width, hole.height)
+        newholerect = pygame.Rect(hole[level].x - offset_x, hole[level].y - offset_y, hole[level].width, hole[level].height)
         pygame.draw.rect(screen, (0, 0, 0), newholerect)
         ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
 
-        if ball_circle.colliderect(hole):
-            break
+        if ball_circle.colliderect(hole[level]):
+            level += 1
+            offset_x = 0
+            offset_y = 0
+            prevx = 0
+            prevy = 0
+            respawn()
+            if level >= len(platforms):
+                state = "queue"
+                ready = False
+                all_ready = False
+                level = 0
+                strokes = 0
+                money = 0
+                x = 300
+                y = 400
+                vx = 0
+                vy = 0
+                inair = False
+                onground = True
+                
+                packet = json.dumps({"type": "game_finished", "id": player_id}) + "\n"
+                try:
+                    client.sendall(packet.encode())
+                except:
+                    pass
 
         # Local player
         pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
