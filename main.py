@@ -192,7 +192,7 @@ def checkcanfire():
 
 def respawn():
     global x,y, prevx, prevy, vx, vy, onground, inair
-    if y + offset_y > 500:
+    if y + offset_y > 2000:
         vx = 0
         vy = 0
         onground = True
