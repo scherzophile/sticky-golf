@@ -192,13 +192,13 @@ def checkcanfire():
 
 def respawn():
     global x,y, prevx, prevy, vx, vy, onground, inair
-    if y + offset_y >= 2000:
+    if y + offset_y > 500:
         vx = 0
         vy = 0
-        x = prevx
-        y = prevx
         onground = True
         inair = False
+        x = prevx
+        y = prevy
 
 
 
@@ -304,7 +304,9 @@ while running:
 
         send_player_data()
 
-        print(y + offset_y)
+        print(y)
+
+
 
         respawn()
         # Background image yay
