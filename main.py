@@ -1,15 +1,16 @@
-# HELLO TEST
-# HELLO STICKY RICKY BACK
-import pygame
-import sys
 import socket
 import threading
 import json
+<<<<<<< Updated upstream
 import random
 import time
+=======
+>>>>>>> Stashed changes
 
-pygame.init()
+HOST = "0.0.0.0"
+PORT = 6767
 
+<<<<<<< Updated upstream
 WIDTH, HEIGHT = 1200, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -22,10 +23,36 @@ def receive_data():
     global other_players, state, all_ready
     buffer = ""
     while True:
+=======
+clients = []
+players_state = {}
+
+def broadcast(message, sender=None):
+    for c, _ in clients:
+        if c != sender:
+            try:
+                c.sendall((message + "\n").encode())
+            except:
+                pass
+
+def handle_client(conn, addr):
+    print(f"[NEW CONNECTION] {addr}")
+    clients.append((conn, addr))
+
+    # Send existing players to new connection
+    for player_data in players_state.values():
+>>>>>>> Stashed changes
         try:
-            data = client.recv(1024).decode()
+            conn.sendall((json.dumps(player_data) + "\n").encode())
+        except:
+            pass
+
+    try:
+        while True:
+            data = conn.recv(1024).decode()
             if not data:
                 break
+<<<<<<< Updated upstream
             buffer += data
             while "\n" in buffer:
                 print("There is stuff in the buffer")
@@ -579,3 +606,44 @@ TO DO LIST:
 - changing backgrounds
 - max power limit (so then user can just max send it)
 """
+=======
+            for line in data.strip().split("\n"):
+                try:
+                    info = json.loads(line)
+                    info["addr"] = str(addr)
+                    players_state[info["id"]] = info  # Track player state
+                    message = json.dumps(info)
+                    broadcast(message, sender=conn)
+                except json.JSONDecodeError:
+                    continue
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"[DISCONNECTED] {addr}")
+
+        # Remove disconnected player from state
+        disconnected_ids = [pid for pid, pdata in players_state.items() if pdata.get("addr") == str(addr)]
+        for pid in disconnected_ids:
+            del players_state[pid]
+
+        for c in clients[:]:
+            if c[0] == conn:
+                clients.remove(c)
+        conn.close()
+
+        disconnect_msg = json.dumps({"type": "disconnect", "addr": str(addr)})
+        broadcast(disconnect_msg)
+
+def start_server():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, PORT))
+        s.listen()
+        print(f"[LISTENING] {HOST}:{PORT}")
+
+        while True:
+            conn, addr = s.accept()
+            threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+
+if __name__ == "__main__":
+    start_server()
+>>>>>>> Stashed changes
