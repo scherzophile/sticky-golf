@@ -1,16 +1,15 @@
+# HELLO TEST
+# HELLO STICKY RICKY BACK
+import pygame
+import sys
 import socket
 import threading
 import json
-<<<<<<< Updated upstream
 import random
 import time
-=======
->>>>>>> Stashed changes
 
-HOST = "0.0.0.0"
-PORT = 6767
+pygame.init()
 
-<<<<<<< Updated upstream
 WIDTH, HEIGHT = 1200, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -18,101 +17,109 @@ clock = pygame.time.Clock()
 font = pygame.font.Font(None, 48)
 font2 = pygame.font.Font(None, 36)
 
-#===== SERVER STUFF
+
+# ===== SERVER STUFF
 def receive_data():
     global other_players, state, all_ready
     buffer = ""
-    while True:
-=======
-clients = []
-players_state = {}
-
-def broadcast(message, sender=None):
-    for c, _ in clients:
-        if c != sender:
-            try:
-                c.sendall((message + "\n").encode())
-            except:
-                pass
-
-def handle_client(conn, addr):
-    print(f"[NEW CONNECTION] {addr}")
-    clients.append((conn, addr))
-
-    # Send existing players to new connection
-    for player_data in players_state.values():
->>>>>>> Stashed changes
-        try:
-            conn.sendall((json.dumps(player_data) + "\n").encode())
-        except:
-            pass
-
     try:
         while True:
-            data = conn.recv(1024).decode()
-            if not data:
-                break
-<<<<<<< Updated upstream
-            buffer += data
-            while "\n" in buffer:
-                print("There is stuff in the buffer")
-                print(buffer)
-                message, buffer = buffer.split("\n", 1)
-                info = json.loads(message)
+            try:
+                data = client.recv(1024).decode()
+                if not data:
+                    break
+                buffer += data
+                while "\n" in buffer:
+                    message, buffer = buffer.split("\n", 1)
+                    info = json.loads(message)
 
-                # Late join
-                if info.get("type") == "reject":
-                    print(info.get("reason"))
-                    pygame.quit()
-                    sys.exit()
-                # Game start
-                if info.get("type") == "start_game":
-                    print("Game started!")
-                    state = "game"
-                    all_ready = True
-                    continue
+                    # Late join
+                    if info.get("type") == "reject":
+                        print(info.get("reason"))
+                        pygame.quit()
+                        sys.exit()
 
-                # Handle disconnect messages
-                if info.get("type") == "disconnect":
-                    disconnect_addr = info.get("addr")
-                    # Remove player by checking if addr matches
-                    for pid in list(other_players.keys()):
-                        if other_players[pid].get("addr") == disconnect_addr:
-                            del other_players[pid]
-                            print(f"Player {pid} disconnected")
-                    continue
+                    # Game start
+                    if info.get("type") == "start_game":
+                        print("Game started!")
+                        state = "game"
+                        all_ready = True
+                        continue
 
-                pid = info["id"]
+                    # Handle player ready status
+                    if info.get("type") == "player_ready":
+                        ready_pid = info.get("id")
+                        if ready_pid in other_players:
+                            other_players[ready_pid]["ready"] = True
+                        continue
 
-                if pid == player_id:
-                    continue
+                    if info.get("type") == "hole_complete":
+                        complete_pid = info.get("id")
+                        if complete_pid in other_players:
+                            other_players[complete_pid]["hole_complete"] = True
+                        elif complete_pid == player_id:
+                            pass
+                        continue
 
-                if pid not in other_players:
-                    other_players[pid] = {
-                        "x": info["x"],
-                        "y": info["y"],
-                        "tx": info["x"],
-                        "ty": info["y"],
-                        "firing": info.get("firing", False),
-                        "inair": info.get("inair", False),
-                        "name": info.get("name", "???"),
-                        "addr": info.get("addr", "")  # Store address for disconnect matching
-                    }
-                else:
-                    other_players[pid]["tx"] = info["x"]
-                    other_players[pid]["ty"] = info["y"]
-                    other_players[pid]["firing"] = info.get("firing", False)
-                    other_players[pid]["inair"] = info.get("inair", False)
-                    other_players[pid]["name"] = info.get("name", other_players[pid].get("name", "???"))
-                    other_players[pid]["addr"] = info.get("addr", other_players[pid].get("addr", ""))
+                    if info.get("type") == "next_hole":
+                        print("Moving to next hole!")
+                        level = info.get("level")
+                        resetfornexthole()
+                        continue
+                    if info.get("type") == "game_reset":
+                        resetgame()
+                        continue
 
-        except socket.timeout:
-            print("We are waiting for data")
-            continue
-        except json.JSONDecodeError:
-            continue
-        except Exception as e:
-            print(f"[ERROR receiving data] {e}")
+                    # Handle disconnect messages
+                    if info.get("type") == "disconnect":
+                        disconnect_addr = info.get("addr")
+                        for pid in list(other_players.keys()):
+                            if other_players[pid].get("addr") == disconnect_addr:
+                                del other_players[pid]
+                                print(f"Player {pid} disconnected")
+                        continue
+
+                    pid = info["id"]
+
+                    if pid == player_id:
+                        continue
+
+                    if pid not in other_players:
+                        other_players[pid] = {
+                            "x": info["x"],
+                            "y": info["y"],
+                            "tx": info["x"],
+                            "ty": info["y"],
+                            "firing": info.get("firing", False),
+                            "inair": info.get("inair", False),
+                            "name": info.get("name", "???"),
+                            "addr": info.get("addr", ""),
+                            "ready": False,
+                            "hole_complete": False
+                        }
+                    else:
+                        other_players[pid]["tx"] = info["x"]
+                        other_players[pid]["ty"] = info["y"]
+                        other_players[pid]["firing"] = info.get("firing", False)
+                        other_players[pid]["inair"] = info.get("inair", False)
+                        other_players[pid]["name"] = info.get("name", other_players[pid].get("name", "???"))
+                        other_players[pid]["addr"] = info.get("addr", other_players[pid].get("addr", ""))
+
+            except socket.timeout:
+                continue
+            except json.JSONDecodeError:
+                continue
+            except Exception as e:
+                print(f"[ERROR receiving data] {e}")
+    except Exception as e:
+        print(f"OOPSIES exception in outer try statement {e} ")
+    finally:
+        try:
+            client.close()
+        except:
+            pass
+        pygame.quit()
+        sys.exit()
 
 
 def send_player_data():
@@ -128,20 +135,9 @@ def send_player_data():
         client.sendall(packet.encode())
     except:
         pass
-    try:
-        packet = json.dumps({
-            "id": player_id,
-            "x": x,
-            "y": y,
-            "firing": firing,
-            "inair": inair,
-            "name": name
-        }) + "\n"
-        client.sendall(packet.encode())
-    except:
-        pass
+
 HOST = "142.112.166.131"
-# HOST = "127.0.0.1"
+#HOST = "127.0.0.1"
 PORT = 6969  # hehehehaw
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.settimeout(1)
@@ -153,7 +149,6 @@ except (ConnectionRefusedError, socket.timeout, OSError) as e:
     print("Ricky server not running")
     pygame.quit()
     sys.exit()
-
 
 # ==== GLOBAL VARIABLES
 player_id = f"{random.randint(1000, 9999)}-{int(time.time() * 1000) % 100000}"
@@ -169,10 +164,25 @@ onground = True
 offset_x = 0
 offset_y = 0
 canfire = False
+activateability = False
+abilitytype = ""
+wasinair = False
+abilities = ["sticky", "homerun", "blackvision", "magnet", "swapball", "ghost", "rewind", "explosive", "dizzy", "invincible"]
+
+spectating = False
+hole_complete = False
+spectate_x = 0;
+spectate_y = 0;
 
 state = "title"
 ready = False
 all_ready = False
+
+# Themes:
+"""
+Grass, Fire, Ice, Space
+"""
+theme = "grass"
 
 x = 300
 y = 400
@@ -185,14 +195,12 @@ theta = 0
 new_dx = 0
 new_dy = 0
 prevx = 0
-prevy =0
+prevy = 0
 
 money = 0
 strokes = 0
 name = ""
 level = 0
-
-
 
 # IMAGES HERE
 bgimg = pygame.image.load("img/pixelsky.jpg").convert()
@@ -263,28 +271,28 @@ platforms = [
         pygame.Rect(900, -350, 200, 1000),
 
         # Top-left corner blocks
-        pygame.Rect(-900, -550, 200, 200), 
+        pygame.Rect(-900, -550, 200, 200),
         pygame.Rect(-700, -750, 200, 200),
 
         # Bottom left corner blocks
-        pygame.Rect(-900, 850, 200, 200), 
+        pygame.Rect(-900, 850, 200, 200),
         pygame.Rect(-700, 1050, 200, 200),
 
         # Top-right corner blocks
-        pygame.Rect(700, -550, 200, 200), 
+        pygame.Rect(700, -550, 200, 200),
         pygame.Rect(500, -750, 200, 200),
 
         # Bottom right corner blocks
-        pygame.Rect(700, 850, 200, 200), 
+        pygame.Rect(700, 850, 200, 200),
         pygame.Rect(500, 1050, 200, 200),
     ]
-    
+
 ]
 
 coins = [
     [
         pygame.Rect(500, 140, 50, 50)
-    ], 
+    ],
     [
         pygame.Rect(500, 140, 50, 50)
     ]
@@ -295,7 +303,7 @@ hole = [
     pygame.Rect(100, 100, 50, 10)
 ]
 
-
+abilityrect = pygame.Rect(700,600,100,100)
 
 def checkcanfire():
     global my, offset_y, canfire
@@ -305,8 +313,9 @@ def checkcanfire():
     else:
         canfire = False
 
+
 def respawn():
-    global x,y, prevx, prevy, vx, vy, onground, inair
+    global x, y, prevx, prevy, vx, vy, onground, inair
     if y + offset_y > 2000:
         vx = 0
         vy = 0
@@ -315,8 +324,44 @@ def respawn():
         x = prevx
         y = prevy
 
+def resetfornexthole():
+    global x,y,vx,vy,onground,offset_x, offset_y, prevx, prevy, spectating, hole_complete, inair, level
+    level+=1
+    x = 0
+    y = 0
+    vx = 0
+    vy = 0
+    inair = False
+    onground = True
+    offset_x = 0
+    offset_y = 0
+    prevx = 0
+    prevy = 0
+    spectating = False
+    hole_complete = False
+
+    for pid in other_players:
+        other_players[pid]["hole_complete"] = False
+
+def resetgame():
+    global state, ready, all_ready, level, strokes, money, x, y, vx, vy, onground, inair, spectating, hole_complete
+    level = 0
+    state = "queue"
+    ready = False
+    all_ready = False
+    strokes = 0
+    money = 0
+    x = 300
+    y = 400
+    vx = 0
+    vy = 0
+    inair = False
+    onground = True
+    spectating = False
+    hole_complete = False
+
 def checkplatform():
-    global vy, inair, y, onground, vx, x, offset_x, new_dx, new_dy, platforms, offset_y
+    global vy, inair, y, onground, vx, x, offset_x, new_dx, new_dy, platforms, offset_y, activateability, abilityrect, abilitytype, wasinair
 
     ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
 
@@ -324,17 +369,53 @@ def checkplatform():
         if ball_circle.colliderect(platform) and vy <= 0 and abs(y - (platform.y + platform.height)) <= 15:
             y = platform.y + platform.height + 13
             vy *= -0.5
+            if activateability and wasinair and abilitytype == "sticky":
+                vy = 0
+                vx = 0
+                inair = False
+                onground = True
+                activateability = False
+                print("This is true!")
+                break
         elif x < platform.left and ball_circle.colliderect(platform) and vx > 0:
             x = platform.left - 13
             vx = -vx * 0.5
+            if activateability and wasinair and abilitytype == "sticky":
+                vy = 0
+                vx = 0
+                inair = False
+                onground = True
+                activateability = False
+                print("This is true!")
+                break
         elif x > platform.right and vx < 0 and ball_circle.colliderect(platform):
             x = platform.right + 13
             vx = -vx * 0.5
+            if activateability and wasinair and abilitytype == "sticky":
+                vy = 0
+                vx = 0
+                inair = False
+                onground = True
+                activateability = False
+                print("This is true!")
+                break
+
         elif ball_circle.colliderect(platform) and vy >= 0:
             onground = True
             y = platform.y - 10
+
+            if activateability and wasinair and abilitytype == "sticky":
+                vy = 0
+                vx = 0
+                inair = False
+                onground = True
+                activateability = False
+                print("This is true!")
+                break
+
             vy *= -0.75
             vx *= 0.6
+
             if abs(vy) <= abs(a):
                 inair = False
                 onground = True
@@ -346,31 +427,46 @@ def checkplatform():
 
     if not onground:
         inair = True
+    wasinair = inair
 
 while running:
-    screen.fill((93, 226, 231))
+    if theme == "grass":
+        bgc = (93, 226, 231)
+    if theme == "fire":
+        bgc = (44, 2, 2)
+    if theme == "ice":
+        bgc = (255, 255, 255)
+    if theme == "space":
+        bgc = (21, 0, 42)
+    screen.fill(bgc)
     mx, my = pygame.mouse.get_pos()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if state == "game" and event.button == 1 and inair == False and canfire == True:
+            if state == "game" and event.button == 1 and inair == False and canfire == True and not abilityrect.collidepoint(mx,my):
                 firing = True
                 onground = True
                 inair = False
+            if abilityrect.collidepoint(mx,my) and not inair:
+                activateability = not activateability
+                abilitytype = "sticky"
             if state == "queue" and event.button == 1:
                 if not ready:
+                    print("Sent ready message")
                     ready = True
                     packet = json.dumps({"type": "ready", "id": player_id}) + "\n"
                     client.sendall(packet.encode())
 
         if event.type == pygame.MOUSEBUTTONUP:
-            if state == "game" and event.button == 1 and canfire == True and inair == False and onground == True:
+            if state == "game" and event.button == 1 and canfire == True and inair == False and onground == True and not abilityrect.collidepoint(mx,my):
                 firing = False
                 inair = True
                 onground = False
                 strokes += 1
+
+
             # Play button
             if state == "title" and event.button == 1:
                 if 550 <= mx and mx <= 650 and 500 <= my and my <= 600 and name.strip() != "":
@@ -385,32 +481,102 @@ while running:
                     name = name[:-1]
                 elif len(name) < 20:
                     name += event.unicode
-        
-    
+            if state == "game":
+                if event.key == pygame.K_1:
+                    theme = "grass"
+                if event.key == pygame.K_2:
+                    theme = "fire"
+                if event.key == pygame.K_3:
+                    theme = "ice"
+                if event.key == pygame.K_4:
+                    theme = "space"
+
     if state == "queue":
-        screen.fill((30, 30, 30))
-        text = font.render("Waiting in queue...", True, (255, 255, 255))
-        screen.blit(text, (450, 300))
+        send_player_data()
+        if title_slide % 3 == 0:
+            screen.blit(forest, (0, 0))
+        elif title_slide % 3 == 1:
+            screen.blit(tundra, (0, 0))
+        else:
+            screen.blit(volcano, (0, 0))
+        screen.blit(logo, (400, 20))
+
+        total_players = len(other_players) + 1
+        ready_count = 0
+        if ready:
+            ready_count += 1
+        for player in other_players.values():
+            if player.get("ready"):
+                ready_count += 1
+
+        pygame.draw.rect(screen, (50, 50, 50), (495, 440, 210, 80), border_radius=15)
+        pygame.draw.rect(screen, (70, 70, 70), (500, 445, 200, 70), border_radius=12)
+        count_text = font.render(f"{ready_count}/{total_players}", True, (255, 255, 255))
+        count_rect = count_text.get_rect(center=(600, 480))
+        screen.blit(count_text, count_rect)
+
+        list_title = font2.render("PLAYERS", True, (0,0,0))
+        screen.blit(list_title, (850, 200))
+
+        y_offset = 250
+        if ready:
+            player_box_color = (0, 200, 0)
+        else:
+            player_box_color = (100, 100, 100)
+        pygame.draw.rect(screen, player_box_color, (820, y_offset, 320, 60), border_radius=10)
+        pygame.draw.rect(screen, (50, 50, 50), (825, y_offset + 5, 310, 50), border_radius=8)
+
+        my_name_text = font2.render(name, True, (255, 255, 255))
+        screen.blit(my_name_text, (840, y_offset + 17))
+
+        # Ready status
+        if ready:
+            ready_text = font2.render("READY", True, (0, 255, 0))
+        else:
+            ready_text = font2.render("NOT READY", True, (255, 100, 100))
+        ready_rect = ready_text.get_rect(right=1120, centery=y_offset + 30)
+        screen.blit(ready_text, ready_rect)
+
+        y_offset += 70
+
+        # Other players
+        for pid, pdata in other_players.items():
+            is_ready = pdata.get("ready", False)
+            if ready:
+                player_box_color = (0, 200, 0)
+            else:
+                player_box_color = (100, 100, 100)
+            pygame.draw.rect(screen, player_box_color, (820, y_offset, 320, 60), border_radius=10)
+            pygame.draw.rect(screen, (50, 50, 50), (825, y_offset + 5, 310, 50), border_radius=8)
+
+            player_name_text = font2.render(pdata['name'], True, (255, 255, 255))
+            screen.blit(player_name_text, (840, y_offset + 17))
+
+            if is_ready:
+                ready_text = font2.render("READY", True, (0, 255, 0))
+            else:
+                ready_text = font2.render("NOT READY", True, (255, 100, 100))
+            ready_rect = ready_text.get_rect(right=1120, centery=y_offset + 30)
+            screen.blit(ready_text, ready_rect)
+
+            y_offset += 70
 
         if not ready:
-            ready_msg = "Click to READY UP"
-            ready_color = (0, 255, 0)
+            button_color = (0, 180, 0)
+            button_text = "READY UP"
         else:
-            ready_msg = "READY! Waiting for others..."
-            ready_color = (255, 255, 0)
-        ready_text = font.render(ready_msg, True, ready_color)
-        screen.blit(ready_text, (350, 400))
+            button_color = (180, 180, 0)
+            button_text = "WAITING..."
 
-        # Other players names
-        y_offset = 500
-        for pid, pdata in other_players.items():
-            nam_text = font2.render(f"{pdata['name']}", True, (255, 255, 255))
-            screen.blit(nam_text, (500, y_offset))
-            y_offset += 40
+        pygame.draw.rect(screen, button_color, (445, 550, 310, 80), border_radius=15)
+        pygame.draw.rect(screen, (60, 60, 60), (450, 555, 300, 70), border_radius=12)
+        ready_button_text = font.render(button_text, True, (255, 255, 255))
+        ready_button_rect = ready_button_text.get_rect(center=(600, 590))
+        screen.blit(ready_button_text, ready_button_rect)
 
         if all_ready:
             state = "game"
-            
+
 
     if state == "title":
         send_player_data()
@@ -430,31 +596,41 @@ while running:
         screen.blit(inputtext, (425, 385))
 
     if state == "game":
-        if inair:
-            vy -= a
-            x += vx
-            y += vy
-            onground = False
-            firing = False
-            checkplatform()
-        offset_x = x - WIDTH // 2
-        offset_y = y - HEIGHT // 2
+        send_player_data()
+        if not spectating:
+            if inair:
+                vy -= a
+                x += vx
+                y += vy
+                onground = False
+                firing = False
+                checkplatform()
+            offset_x = x - WIDTH // 2
+            offset_y = y - HEIGHT // 2
+        else:
+            offset_x = spectate_x - WIDTH // 2
+            offset_y = spectate_y - HEIGHT // 2
 
         checkcanfire()
-
-        send_player_data()
-
-
-
         respawn()
-        # Background image yay
-        # screen.blit(bgimg, (0, 0))
 
         for platform in platforms[level]:
-            pygame.draw.rect(screen, (67, 33, 9),
+            if theme == "grass":
+                color1 = (67, 33, 9)
+                color2 = (0, 150, 0)
+            if theme == "fire":
+                color2 = (183, 39, 39)
+                color1 = (88, 70, 49)
+            if theme == "ice":
+                color2 = (1, 248, 248)
+                color1 = (32, 192, 192)
+            if theme == "space":
+                color2 = (169, 59, 237)
+                color1 = (80, 80, 80)
+            pygame.draw.rect(screen, color1,
                              (platform.x - offset_x, platform.y - offset_y, platform.width, platform.height),
                              border_radius=5)
-            pygame.draw.rect(screen, (0, 150, 0),
+            pygame.draw.rect(screen, color2,
                              (platform.x - 2 - offset_x, platform.y - offset_y, platform.width + 4, 10),
                              border_radius=10)
 
@@ -468,55 +644,63 @@ while running:
                 coin.y - offset_y + coin.height / 2
             ), coin.width / 2)
 
-            ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
-            if ball_circle.colliderect(coin):
-                money += 100
-                coin.x = -100000000
-                break
+            if not spectating:
+                ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
+                if ball_circle.colliderect(coin):
+                    money += 100
+                    coin.x = -100000000
+                    break
 
         # Draw hole
-        newholerect = pygame.Rect(hole[level].x - offset_x, hole[level].y - offset_y, hole[level].width, hole[level].height)
+        newholerect = pygame.Rect(hole[level].x - offset_x, hole[level].y - offset_y, hole[level].width,
+                                  hole[level].height)
         pygame.draw.rect(screen, (0, 0, 0), newholerect)
-        ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
+        if not spectating:
+            ball_circle = pygame.Rect(x - 13, y - 13, 26, 26)
+            pygame.draw.rect(screen, (0,0,0), (abilityrect.x, abilityrect.y, abilityrect.width, abilityrect.height))
 
-        if ball_circle.colliderect(hole[level]):
-            level += 1
-            offset_x = 0
-            offset_y = 0
-            prevx = 0
-            prevy = 0
-            respawn()
-            if level >= len(platforms):
-                state = "queue"
-                ready = False
-                all_ready = False
-                level = 0
-                strokes = 0
-                money = 0
-                x = 300
-                y = 400
-                vx = 0
-                vy = 0
-                inair = False
-                onground = True
-                
-                packet = json.dumps({"type": "game_finished", "id": player_id}) + "\n"
+            if ball_circle.colliderect(hole[level]):
+                hole_complete = True
+                spectating = True
+                spectate_x = hole[level].x + hole[level].width // 2
+                spectate_y = hole[level].y + hole[level].height // 2
+                packet = json.dumps({"type": "hole_complete", "id": player_id}) + "\n"
                 try:
                     client.sendall(packet.encode())
                 except:
-                    print("Problem sending game finished")
+                    print("Problem")
+                offset_x = 0
+                offset_y = 0
+                prevx = 0
+                prevy = 0
+                respawn()
+                if level >= len(platforms) - 1:
+                    pass
 
         # Local player
-        pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
-        pygame.draw.circle(screen, (255, 255, 255), (x - offset_x, y - offset_y), 10)
+        if not spectating:
+            pygame.draw.circle(screen, (100, 100, 100), (x - offset_x, y - offset_y), 13)
+            pygame.draw.circle(screen, (255, 255, 255), (x - offset_x, y - offset_y), 10)
 
-        fontw, fonth = font2.size(name)
-        pygame.draw.rect(screen, (0, 0, 0),
-                         (x - offset_x - fontw / 2 - 10, y - offset_y - 55 - fonth / 2, fontw + 20, fonth + 10),
-                         border_radius=10)
-        my_name = font2.render(name, True, (255, 255, 255))
-        my_name_rect = my_name.get_rect(center=(x - offset_x, y - offset_y - 50))
-        screen.blit(my_name, my_name_rect)
+            fontw, fonth = font2.size(name)
+            pygame.draw.rect(screen, (0, 0, 0),
+                             (x - offset_x - fontw / 2 - 10, y - offset_y - 55 - fonth / 2, fontw + 20, fonth + 10),
+                             border_radius=10)
+            my_name = font2.render(name, True, (255, 255, 255))
+            my_name_rect = my_name.get_rect(center=(x - offset_x, y - offset_y - 50))
+            screen.blit(my_name, my_name_rect)
+        else:
+            pygame.draw.circle(screen, (100, 100, 100), (spectate_x - offset_x, spectate_y - offset_y), 13)
+            pygame.draw.circle(screen, (255, 255, 255), (spectate_x - offset_x, spectate_y - offset_y), 10)
+
+            fontw, fonth = font2.size(name)
+            pygame.draw.rect(screen, (0, 0, 0),
+                             (spectate_x - offset_x - fontw / 2 - 10, spectate_y - offset_y - 55 - fonth / 2,
+                              fontw + 20, fonth + 10),
+                             border_radius=10)
+            my_name = font2.render(name, True, (255, 255, 255))
+            my_name_rect = my_name.get_rect(center=(spectate_x - offset_x, spectate_y - offset_y - 50))
+            screen.blit(my_name, my_name_rect)
 
         # Other players
         for pid, pdata in other_players.items():
@@ -538,7 +722,7 @@ while running:
             name_rect = name_text.get_rect(center=(other_x, other_y - 50))
             screen.blit(name_text, name_rect)
 
-        if firing:
+        if firing and not spectating:
             viy = -15
             vy = viy
             prevx = x
@@ -589,6 +773,23 @@ while running:
         money_rect = money_text.get_rect(center=(600, 115))
         screen.blit(money_text, money_rect)
 
+        if spectating:
+            finished_count = 1
+            total_players = len(other_players) + 1
+            for pdata in other_players.values():
+                if pdata.get("hole_complete", False):
+                    finished_count += 1
+
+            pygame.draw.rect(screen, (0, 0, 0), (395, 680, 410, 90), border_radius=15)
+            pygame.draw.rect(screen, (100, 100, 255), (400, 685, 400, 80), border_radius=12)
+            spectate_text = font2.render("WAITING FOR OTHERS", True, (255, 255, 255))
+            spectate_rect = spectate_text.get_rect(center=(600, 710))
+            screen.blit(spectate_text, spectate_rect)
+
+            count_text = font2.render(f"{finished_count}/{total_players} finished", True, (255, 255, 255))
+            count_rect = count_text.get_rect(center=(600, 740))
+            screen.blit(count_text, count_rect)
+
     title_slideshow += 1
     if title_slideshow % 300 == 0:
         title_slide += 1
@@ -596,8 +797,6 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
-pygame.quit()
-sys.exit()
 
 """
 
@@ -606,44 +805,3 @@ TO DO LIST:
 - changing backgrounds
 - max power limit (so then user can just max send it)
 """
-=======
-            for line in data.strip().split("\n"):
-                try:
-                    info = json.loads(line)
-                    info["addr"] = str(addr)
-                    players_state[info["id"]] = info  # Track player state
-                    message = json.dumps(info)
-                    broadcast(message, sender=conn)
-                except json.JSONDecodeError:
-                    continue
-    except ConnectionResetError:
-        pass
-    finally:
-        print(f"[DISCONNECTED] {addr}")
-
-        # Remove disconnected player from state
-        disconnected_ids = [pid for pid, pdata in players_state.items() if pdata.get("addr") == str(addr)]
-        for pid in disconnected_ids:
-            del players_state[pid]
-
-        for c in clients[:]:
-            if c[0] == conn:
-                clients.remove(c)
-        conn.close()
-
-        disconnect_msg = json.dumps({"type": "disconnect", "addr": str(addr)})
-        broadcast(disconnect_msg)
-
-def start_server():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
-        s.listen()
-        print(f"[LISTENING] {HOST}:{PORT}")
-
-        while True:
-            conn, addr = s.accept()
-            threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
-
-if __name__ == "__main__":
-    start_server()
->>>>>>> Stashed changes
