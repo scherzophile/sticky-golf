@@ -136,8 +136,8 @@ def send_player_data():
     except:
         pass
 
-HOST = "142.112.166.131"
-#HOST = "127.0.0.1"
+#HOST = "142.112.166.131"
+HOST = "127.0.0.1"
 PORT = 6969  # hehehehaw
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.settimeout(1)
